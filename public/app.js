@@ -6,7 +6,8 @@
 // Authentication & Credentials
 const USERS = {
   admin: { password: 'admin123', role: 'admin', roots: null },
-  user:  { password: 'user123',  role: 'user',  roots: ['andresa_molina'] }
+  user:  { password: 'user123',  role: 'user',  roots: ['andresa_molina'] },
+  jaqueline: { password: 'amovoce', role: 'user', roots: ['andresa_molina'] }
 };
 
 // State Management
