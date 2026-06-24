@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultMind — Wiki</title>
+  <script>
+    (function(){
+      var t = localStorage.getItem('theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Login Overlay -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-brand">
+        <i class="fa-solid fa-vault"></i>
+        <h1>VaultMind</h1>
+      </div>
+      <form id="login-form">
+        <input type="text" id="login-user" placeholder="Usuário" autocomplete="username">
+        <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password">
+        <button type="submit">Entrar</button>
+        <p id="login-error" class="login-error hidden">Usuário ou senha incorretos.</p>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-container hidden" id="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="header-top">
+          <div class="brand">
+          <i class="fa-solid fa-vault brand-icon"></i>
+          <div>
+            <h1>VaultMind</h1>
+            <span id="sidebar-subtitle">Wiki</span>
+          </div>
+        </div>
+        </div>
+        <div class="header-controls">
+          <button id="theme-toggle" class="btn-icon" aria-label="Alternar Tema">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+          <button id="logout-btn" class="btn-icon" title="Sair">
+            <i class="fa-solid fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Root Selector (shown only if multiple roots and user is authorized) -->
+      <div class="root-selector-container hidden" id="root-selector-container">
+        <label for="root-select">Wiki:</label>
+        <select id="root-select"></select>
+      </div>
+
+      <!-- Search Box -->
+      <div class="search-container">
+        <div class="search-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="search-input" placeholder="Buscar notas ou conteúdos...">
+          <button id="clear-search" class="btn-icon hidden"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      
+      <!-- Category Filter Chips -->
+      <div class="filter-chips" id="filter-chips">
+        <button class="filter-chip active" data-filter="all">Todos</button>
+        <button class="filter-chip" data-filter="principle"><i class="fa-solid fa-scale-balanced"></i> Princípios</button>
+        <button class="filter-chip" data-filter="conceito"><i class="fa-solid fa-brain"></i> Conceitos</button>
+        <button class="filter-chip" data-filter="tecnica"><i class="fa-solid fa-screwdriver-wrench"></i> Técnicas</button>
+        <button class="filter-chip" data-filter="other"><i class="fa-solid fa-layer-group"></i> Outros</button>
+      </div>
+
+      <!-- Navigation Tree -->
+      <nav class="nav-menu" id="nav-menu">
+        <div class="nav-loading">
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Carregando notas...
+        </div>
+      </nav>
+
+      <!-- Sidebar Tags Panel -->
+      <div class="sidebar-tags-panel">
+        <div class="sidebar-tags-title">
+          <span><i class="fa-solid fa-tags"></i> Tags Populares</span>
+        </div>
+        <div class="sidebar-tags-list" id="sidebar-tags-list">
+          <!-- Tags loaded dynamically -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Desktop sidebar collapse toggle -->
+    <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Recolher barra lateral (Ctrl+B)" aria-label="Recolher barra lateral">
+      <i class="fa-solid fa-bars-staggered"></i>
+    </button>
+
+    <!-- Mobile Header/Overlay -->
+    <div class="mobile-header">
+      <button id="mobile-menu-toggle" class="btn-icon">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="mobile-title">HumanoSense Wiki</div>
+      <button id="theme-toggle-mobile" class="btn-icon">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    
+    <!-- Main Content Area -->
+    <main class="content-area">
+      <!-- Main Note View -->
+      <article class="note-container hidden" id="note-view">
+        <div class="note-grid-layout">
+          
+          <!-- Left Column: Note Content -->
+          <div class="note-content-col">
+            <header class="note-header">
+              <div class="note-meta-top">
+                <span class="note-type" id="note-type-badge">CONCEITO</span>
+                <button id="open-obsidian-btn" class="btn-secondary" title="Abrir no Obsidian">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir no Obsidian
+                </button>
+              </div>
+              <h1 class="note-title" id="note-title">Título da Nota</h1>
+              <div class="note-tags" id="note-tags-container">
+                <!-- Tags loaded dynamically -->
+              </div>
+              <a href="#graph-anchor" class="connections-indicator hidden" id="connections-indicator">
+                <i class="fa-solid fa-circle-nodes"></i>
+                <span id="connections-count">0</span> conexões
+              </a>
+            </header>
+            
+            <div class="note-body markdown-body" id="note-body">
+              <!-- Rendered HTML Content -->
+            </div>
+          </div>
+          
+          <!-- Right Column: Graph & Backlinks -->
+          <div class="note-relations-col">
+            <div class="relations-sticky-wrapper">
+              <div class="relations-card hidden" id="relations-container">
+                
+                <!-- Local Graph View -->
+                <div class="graph-section" id="graph-anchor">
+                  <h4><i class="fa-solid fa-circle-nodes"></i> Mapa de Conexões</h4>
+                  <div class="canvas-wrapper">
+                    <canvas id="local-graph-canvas"></canvas>
+                  </div>
+                </div>
+                
+                <!-- Related Backlinks -->
+                <div class="backlinks-section">
+                  <h4>NOTAS RELACIONADAS <span class="subtitle">Backlinks</span></h4>
+                  <ul class="backlinks-list" id="backlinks-list"></ul>
+                </div>
+                
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </article>
+
+      <!-- Search Results Panel -->
+      <div class="search-results-panel hidden" id="search-results-view">
+        <div class="search-results-header">
+          <h2 id="search-results-title">Resultados da Busca</h2>
+          <span class="search-results-count" id="search-results-count"></span>
+        </div>
+        <div class="search-results-list" id="search-results-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Empty / Home State -->
+      <div class="empty-state" id="home-view">
+        <div class="home-layout">
+          <div class="empty-state-card">
+            <i class="fa-solid fa-compass empty-icon"></i>
+            <h2 id="home-welcome">Bem-vindo ao VaultMind</h2>
+            <p id="home-description">Selecione uma nota na barra lateral ou utilize o campo de busca para começar a explorar.</p>
+            <div class="quick-stats">
+              <div class="stat-item">
+                <span class="stat-val" id="stat-total-notes">-</span>
+                <span class="stat-label">Notas Totais</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-val" id="stat-total-principles">-</span>
+                <span class="stat-label">Princípios</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-val" id="stat-total-concepts">-</span>
+                <span class="stat-label">Conceitos</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-val" id="stat-total-techniques">-</span>
+                <span class="stat-label">Técnicas</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="home-starter-section">
+            <h3><i class="fa-solid fa-rocket"></i> Comece por aqui</h3>
+            <div class="starter-notes" id="starter-notes"></div>
+          </div>
+
+          <div class="home-tagcloud-section">
+            <h3><i class="fa-solid fa-tags"></i> Explore por tags</h3>
+            <div class="home-tagcloud" id="home-tagcloud"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Client-side Script -->
+  <script src="app.js"></script>
+</body>
+</html>

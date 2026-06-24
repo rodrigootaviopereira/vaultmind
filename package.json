@@ -1,0 +1,14 @@
+{
+  "name": "humanosense-wiki",
+  "version": "1.0.0",
+  "description": "Navegador e buscador estático para a Wiki Andresa Molina (HumanoSense)",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "start": "npx serve public"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^12.0.0"
+  }
+}
