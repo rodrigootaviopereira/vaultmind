@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
 const { marked } = require('marked');
+const extractZip = require('extract-zip');
 
 marked.setOptions({
   gfm: true,
@@ -37,6 +38,21 @@ function getFilesRecursively(dir) {
     }
   });
   return results;
+}
+
+async function extractWikiIfNeeded() {
+  const wikiZipPath = path.join(__dirname, 'wiki.zip');
+  if (!fs.existsSync(wikiBaseDir) && fs.existsSync(wikiZipPath)) {
+    console.log('Extraindo wiki.zip...');
+    try {
+      await extractZip(wikiZipPath, { dir: __dirname });
+      console.log('✓ Wiki extraído com sucesso');
+    } catch (err) {
+      console.error('Erro ao extrair wiki.zip:', err.message);
+      process.exit(1);
+    }
+  }
+  continueBuild();
 }
 
 function getRootsToProcess() {
@@ -252,7 +268,7 @@ function renderStaticPages(notes, rootId) {
   });
 }
 
-function build() {
+function continueBuild() {
   console.log('Iniciando compilação multi-root...\n');
 
   const roots = getRootsToProcess();
@@ -273,4 +289,6 @@ function build() {
   console.log(`✓ Total de ${roots.length} raízes compiladas com sucesso!\n`);
 }
 
-build();
+(async () => {
+  await extractWikiIfNeeded();
+})();
