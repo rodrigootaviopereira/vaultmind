@@ -65,10 +65,23 @@
         </div>
       </div>
       
-      <!-- Root Selector (shown only if multiple roots and user is authorized) -->
+      <!-- Root Selector for regular users (dropdown) -->
       <div class="root-selector-container hidden" id="root-selector-container">
         <label for="root-select">Wiki:</label>
         <select id="root-select"></select>
+      </div>
+
+      <!-- Root Filter for admin (checkboxes) -->
+      <div class="root-filter-container hidden" id="root-filter-container">
+        <div class="root-filter-header">
+          <span><i class="fa-solid fa-sliders"></i> Selecionar Raízes</span>
+          <button id="root-filter-collapse" class="btn-icon" title="Fechar">
+            <i class="fa-solid fa-chevron-up"></i>
+          </button>
+        </div>
+        <div class="root-filter-list" id="root-filter-list">
+          <!-- Populated dynamically -->
+        </div>
       </div>
 
       <!-- Search Box -->

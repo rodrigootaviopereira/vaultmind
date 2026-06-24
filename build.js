@@ -285,7 +285,33 @@ function continueBuild() {
 
   const manifestFile = path.join(publicDir, 'roots.json');
   fs.writeFileSync(manifestFile, JSON.stringify(rootsManifest, null, 2), 'utf8');
-  console.log(`\n✓ Manifesto de raízes criado: ${manifestFile}`);
+  console.log(`✓ Manifesto de raízes criado: ${manifestFile}`);
+
+  // Generate roots-graph with detailed metadata for filtering
+  const rootsGraph = rootsManifest.map(root => {
+    const dataFile = path.join(publicDir, `data-${root.id}.json`);
+    const notes = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+
+    // Collect all unique tags from notes
+    const allTags = new Set();
+    Object.values(notes).forEach(note => {
+      if (note.frontmatter && note.frontmatter.tags) {
+        note.frontmatter.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+
+    return {
+      id: root.id,
+      label: root.label,
+      noteCount: root.noteCount,
+      tags: Array.from(allTags).sort(),
+      linkedRoots: [] // Will be populated in future when cross-references exist
+    };
+  });
+
+  const graphFile = path.join(publicDir, 'roots-graph.json');
+  fs.writeFileSync(graphFile, JSON.stringify(rootsGraph, null, 2), 'utf8');
+  console.log(`✓ Grafo de raízes criado: ${graphFile}`);
   console.log(`✓ Total de ${roots.length} raízes compiladas com sucesso!\n`);
 }
 

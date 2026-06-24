@@ -14,6 +14,8 @@ let wikiData = {};
 let currentRootId = 'andresa_molina';
 let currentRootLabel = 'Andresa Molina';
 let availableRoots = [];
+let allRootsGraph = []; // Full list with metadata
+let selectedRootIds = []; // For admin filter
 let session = null;
 let currentSearchQuery = '';
 let activeTagFilter = '';
@@ -39,6 +41,10 @@ const appContainer = document.getElementById('app-container');
 // DOM Elements - Root Selector
 const rootSelectorContainer = document.getElementById('root-selector-container');
 const rootSelect = document.getElementById('root-select');
+const rootFilterContainer = document.getElementById('root-filter-container');
+const rootFilterList = document.getElementById('root-filter-list');
+const rootFilterHeader = document.querySelector('.root-filter-header');
+const rootFilterCollapseBtn = document.getElementById('root-filter-collapse');
 const sidebarSubtitle = document.getElementById('sidebar-subtitle');
 
 // DOM Elements - Navigation
@@ -155,9 +161,15 @@ async function init() {
 
 async function loadWiki() {
   try {
+    // Load both roots.json and roots-graph.json
     const rootsResponse = await fetch('roots.json');
     if (!rootsResponse.ok) throw new Error('Falha ao carregar manifesto de raízes.');
     availableRoots = await rootsResponse.json();
+
+    const graphResponse = await fetch('roots-graph.json');
+    if (graphResponse.ok) {
+      allRootsGraph = await graphResponse.json();
+    }
 
     // Filtrar raízes baseado na sessão do usuário
     const userRoots = session.role === 'admin' ? availableRoots : availableRoots.filter(r => session.roots.includes(r.id));
@@ -169,17 +181,27 @@ async function loadWiki() {
       return;
     }
 
-    // Mostrar seletor se múltiplas raízes
-    if (userRoots.length > 1) {
-      rootSelectorContainer.classList.remove('hidden');
-      rootSelect.innerHTML = userRoots.map(r => `<option value="${r.id}">${r.label}</option>`).join('');
-      currentRootId = userRoots[0].id;
-    } else {
+    // Show admin filter or user selector
+    if (session.role === 'admin') {
       rootSelectorContainer.classList.add('hidden');
-      currentRootId = userRoots[0].id;
+      renderAdminRootFilter(userRoots);
+      // Load all selected roots (or all by default on first load)
+      if (selectedRootIds.length === 0) {
+        selectedRootIds = userRoots.map(r => r.id);
+      }
+    } else {
+      rootFilterContainer.classList.add('hidden');
+      if (userRoots.length > 1) {
+        rootSelectorContainer.classList.remove('hidden');
+        rootSelect.innerHTML = userRoots.map(r => `<option value="${r.id}">${r.label}</option>`).join('');
+        currentRootId = userRoots[0].id;
+      } else {
+        rootSelectorContainer.classList.add('hidden');
+        currentRootId = userRoots[0].id;
+      }
     }
 
-    // Carregar dados da raiz
+    // Carregar dados das raízes selecionadas
     await loadRootData(currentRootId);
     router();
   } catch (error) {
@@ -190,23 +212,93 @@ async function loadWiki() {
   }
 }
 
+function renderAdminRootFilter(userRoots) {
+  rootFilterContainer.classList.remove('hidden');
+  rootFilterList.innerHTML = '';
+
+  userRoots.forEach(root => {
+    const rootGraph = allRootsGraph.find(r => r.id === root.id);
+    const noteCount = root.noteCount || 0;
+    const isSelected = selectedRootIds.includes(root.id);
+
+    const item = document.createElement('div');
+    item.className = 'root-filter-item';
+    item.innerHTML = `
+      <input type="checkbox" id="root-check-${root.id}" data-root-id="${root.id}" ${isSelected ? 'checked' : ''}>
+      <label for="root-check-${root.id}">
+        <span>${root.label}</span>
+        <span class="root-note-count">${noteCount} notas</span>
+      </label>
+    `;
+    rootFilterList.appendChild(item);
+  });
+
+  // Add event listeners to checkboxes
+  document.querySelectorAll('.root-filter-item input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', handleRootFilterChange);
+  });
+}
+
+function handleRootFilterChange(e) {
+  const rootId = e.target.dataset.rootId;
+  if (e.target.checked) {
+    if (!selectedRootIds.includes(rootId)) {
+      selectedRootIds.push(rootId);
+    }
+  } else {
+    selectedRootIds = selectedRootIds.filter(r => r !== rootId);
+  }
+
+  // Ensure at least one root is selected
+  if (selectedRootIds.length === 0) {
+    selectedRootIds.push(rootId);
+    e.target.checked = true;
+    return;
+  }
+
+  // Reload UI with new selection
+  currentRootId = selectedRootIds[0];
+  buildStats();
+  buildHomeSections();
+  renderSidebarMenu();
+  renderSidebarTags();
+  if (window.location.hash === '' || window.location.hash === '#') {
+    showHome();
+  }
+}
+
 async function loadRootData(rootId) {
   try {
+    // Determine which roots to load
+    const rootsToLoad = session.role === 'admin' && selectedRootIds.length > 0
+      ? selectedRootIds
+      : [rootId];
+
+    // Load and merge data from selected roots
+    wikiData = {};
+    for (const rid of rootsToLoad) {
+      const response = await fetch(`data-${rid}.json`);
+      if (response.ok) {
+        const rootNotes = await response.json();
+        wikiData = { ...wikiData, ...rootNotes };
+      }
+    }
+
+    // Update UI
+    currentRootId = rootId;
     const root = availableRoots.find(r => r.id === rootId);
-    if (!root) throw new Error(`Raiz não encontrada: ${rootId}`);
+    currentRootLabel = root ? root.label : 'VaultMind';
 
-    currentRootId = root.id;
-    currentRootLabel = root.label;
-
-    const response = await fetch(`data-${rootId}.json`);
-    if (!response.ok) throw new Error(`Falha ao carregar dados de ${rootId}`);
-    wikiData = await response.json();
-
-    // Atualizar UI com a nova raiz
-    document.title = `VaultMind — Wiki de ${currentRootLabel}`;
-    sidebarSubtitle.textContent = `Wiki de ${currentRootLabel}`;
+    if (rootsToLoad.length === 1) {
+      document.title = `VaultMind — Wiki de ${currentRootLabel}`;
+      sidebarSubtitle.textContent = `Wiki de ${currentRootLabel}`;
+      homeDescription.textContent = `Explorando a wiki de ${currentRootLabel}. Selecione uma nota na barra lateral ou utilize o campo de busca.`;
+    } else {
+      document.title = `VaultMind — ${rootsToLoad.length} wikis`;
+      sidebarSubtitle.textContent = `${rootsToLoad.length} wikis selecionadas`;
+      homeDescription.textContent = `Explorando ${rootsToLoad.length} wikis. Selecione uma nota na barra lateral ou utilize o campo de busca.`;
+    }
     homeWelcome.textContent = `Bem-vindo ao VaultMind`;
-    homeDescription.textContent = `Explorando a wiki de ${currentRootLabel}. Selecione uma nota na barra lateral ou utilize o campo de busca.`;
 
     buildStats();
     buildHomeSections();
@@ -215,7 +307,7 @@ async function loadRootData(rootId) {
   } catch (error) {
     console.error(error);
     navMenu.innerHTML = `<div class="nav-loading" style="color: var(--color-principle)">
-      <i class="fa-solid fa-triangle-exclamation"></i> Erro ao carregar ${currentRootLabel}.
+      <i class="fa-solid fa-triangle-exclamation"></i> Erro ao carregar dados.
     </div>`;
   }
 }
@@ -1294,11 +1386,22 @@ function setupEventListeners() {
   // Auth listeners
   loginForm.addEventListener('submit', handleLogin);
   logoutBtn.addEventListener('click', handleLogout);
+
+  // Root selector/filter listeners
   rootSelect.addEventListener('change', (e) => {
-    loadRootData(e.target.value).then(() => {
-      window.location.hash = '';
-      router();
-    });
+    currentRootId = e.target.value;
+    window.location.hash = '';
+    router();
+  });
+
+  rootFilterHeader.addEventListener('click', () => {
+    rootFilterList.classList.toggle('hidden');
+    const icon = rootFilterCollapseBtn.querySelector('i');
+    if (rootFilterList.classList.contains('hidden')) {
+      icon.className = 'fa-solid fa-chevron-down';
+    } else {
+      icon.className = 'fa-solid fa-chevron-up';
+    }
   });
 
   window.addEventListener('hashchange', router);
