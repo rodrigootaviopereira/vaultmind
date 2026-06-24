@@ -8,7 +8,7 @@ marked.setOptions({
   breaks: true
 });
 
-const wikiBaseDir = path.join(__dirname, '..', '..', 'wiki');
+const wikiBaseDir = path.join(__dirname, 'wiki');
 const publicDir = path.join(__dirname, 'public');
 
 if (!fs.existsSync(publicDir)) {
