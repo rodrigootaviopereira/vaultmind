@@ -678,17 +678,19 @@ function createMenuItemElement(note, category = null) {
   const type = category || determineNoteType(note);
   const li = document.createElement('li');
   li.className = 'menu-item';
-  
+
   const a = document.createElement('a');
   a.className = 'menu-link';
   a.href = `#/note/${encodeURIComponent(note.id)}`;
   a.title = note.title;
-  
+
   const bullet = document.createElement('span');
   bullet.className = `menu-link-bullet bullet-${type}`;
-  
-  const textNode = document.createTextNode(note.title);
-  
+
+  // Use clean title (removes prefixes like "Princípio", "Conceito", "Técnica")
+  const displayTitle = cleanTitle(note.title);
+  const textNode = document.createTextNode(displayTitle);
+
   a.appendChild(bullet);
   a.appendChild(textNode);
   li.appendChild(a);
